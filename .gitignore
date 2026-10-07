@@ -1,0 +1,25 @@
+# Build output
+bin/
+obj/
+dist/
+publish/
+artifacts/
+TestResults/
+*.user
+*.suo
+.vs/
+.idea/
+*.swp
+
+# Acorn vault data — never commit user vaults, backups or temp files
+*.acorn
+*.acorn.lock
+*.bak
+*.tmp
+
+# Test fixtures are the only vault files allowed in the repo
+!tests/**/Fixtures/*.acorn
+
+# OS noise
+.DS_Store
+Thumbs.db

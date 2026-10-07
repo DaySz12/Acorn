@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Acorn.Application</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Controller layer: plain C#. Must not reference Blazor, Photino or OS-specific APIs (enforced by tests). -->
+  <ItemGroup>
+    <ProjectReference Include="..\Acorn.Core\Acorn.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Acorn.Application.Tests" />
+  </ItemGroup>
+
+</Project>

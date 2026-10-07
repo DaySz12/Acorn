@@ -1,0 +1,16 @@
+@* Draws the strength estimate computed by the controller. No scoring logic here. *@
+@if (Strength is { Percent: > 0 } s)
+{
+    <div class="strength s@(s.Score)">
+        <div class="meter"><span></span></div>
+        <div>ความแข็งแรง: <strong>@s.Label</strong></div>
+        @foreach (var hint in s.Hints)
+        {
+            <div class="hint">• @hint</div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public PasswordStrengthViewModel? Strength { get; set; }
+}

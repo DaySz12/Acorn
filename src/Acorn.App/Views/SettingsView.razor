@@ -1,0 +1,205 @@
+@inherits AppStateView
+@inject SettingsController Settings
+@inject VaultController Vault
+@inject BackupController Backups
+@inject UnlockController Unlock
+
+@if (State.Settings is { } s)
+{
+    <div class="page">
+        <div class="page-inner">
+            <div class="page-head">
+                <button class="icon-btn" title="กลับ" @onclick="Settings.Close"><Icon Name="arrow-left" /></button>
+                <h1>ตั้งค่า</h1>
+                <button class="btn primary" disabled="@State.IsBusy" @onclick="Settings.SaveAsync"><Icon Name="check" Class="sm" /> บันทึกการตั้งค่า</button>
+            </div>
+
+            <NoticeBar />
+            @if (s.Errors.Count > 0)
+            {
+                <ul class="form-errors">
+                    @foreach (var error in s.Errors)
+                    {
+                        <li>@error</li>
+                    }
+                </ul>
+            }
+
+            <section class="card settings-section">
+                <h3>หน้าตา</h3>
+                <div>
+                    <div class="segmented">
+                        @foreach (var theme in Themes)
+                        {
+                            <button type="button" class="@(s.Theme == theme ? "on" : "")" @onclick="() => s.Theme = theme">@Ui.ThemeLabel(theme)</button>
+                        }
+                    </div>
+                </div>
+            </section>
+
+            <section class="card settings-section">
+                <h3>ความปลอดภัย</h3>
+                <div class="setting-line">
+                    <div class="text"><span>ล็อกอัตโนมัติเมื่อไม่ได้ใช้งาน</span><small>นาที (1–120)</small></div>
+                    <input class="input" type="number" min="1" max="120" @bind="s.AutoLockMinutes" />
+                </div>
+                <div class="setting-line">
+                    <div class="text"><span>ล้าง clipboard หลังคัดลอกค่าลับ</span><small>วินาที (5–300) ล้างเฉพาะเมื่อ clipboard ยังเป็นค่าที่ Acorn ใส่ไว้</small></div>
+                    <input class="input" type="number" min="5" max="300" @bind="s.ClipboardClearSeconds" />
+                </div>
+                <div class="setting-line">
+                    <div class="text"><span>แสดงรหัสผ่านชั่วคราว</span><small>วินาที (5–60) แล้วซ่อนกลับเอง</small></div>
+                    <input class="input" type="number" min="5" max="60" @bind="s.RevealSeconds" />
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" @bind="s.LockOnMinimize" />
+                    <span class="toggle-text"><span>ล็อกเมื่อย่อหน้าต่าง</span><small>ล็อกทันทีที่ minimize หน้าต่าง Acorn</small></span>
+                </label>
+                <label class="toggle">
+                    <input type="checkbox" @bind="s.ScreenCaptureProtection" disabled="@(!s.ScreenProtectionSupported)" />
+                    <span class="toggle-text">
+                        <span>กันการจับภาพหน้าจอ</span>
+                        <small>@(s.ScreenProtectionSupported
+                            ? "ซ่อนหน้าต่าง Acorn จาก screenshot และการแชร์หน้าจอผ่าน API มาตรฐาน (กล้องถ่ายจอหรือมัลแวร์ระดับลึกป้องกันไม่ได้)"
+                            : "ระบบปฏิบัติการนี้ยังไม่รองรับ")</small>
+                    </span>
+                </label>
+            </section>
+
+            <section class="card settings-section">
+                <h3>Environments</h3>
+                <p class="desc">ชื่อที่แสดงใน sidebar คั่นด้วย , หรือเว้นวรรค</p>
+                <input class="input" @bind="s.EnvironmentsText" autocomplete="off" spellcheck="false" />
+            </section>
+
+            <section class="card settings-section">
+                <h3>Backup</h3>
+                <p class="desc">Acorn สำรองไฟล์ vault อัตโนมัติก่อนบันทึกทับทุกครั้ง</p>
+                <div class="setting-line">
+                    <div class="text"><span>จำนวน backup ที่เก็บไว้</span><small>5–50 ไฟล์ ลบไฟล์เก่าสุดเมื่อเกิน</small></div>
+                    <input class="input" type="number" min="5" max="50" @bind="s.BackupKeep" />
+                </div>
+                <div><button class="btn" @onclick="Backups.Open"><Icon Name="restore" Class="sm" /> กู้คืนจาก backup…</button></div>
+            </section>
+
+            <section class="card settings-section">
+                <h3>เปลี่ยน master password</h3>
+                <p class="desc">Acorn จะสร้างกุญแจเข้ารหัสข้อมูลใหม่และ recovery key ชุดใหม่ (ชุดเดิมจะใช้ไม่ได้)</p>
+                <label class="field"><span>Master password ปัจจุบัน</span><PasswordInput @bind-Value="_changeCurrent" Disabled="State.IsBusy" /></label>
+                <label class="field"><span>Master password ใหม่ (อย่างน้อย 12 ตัวอักษร)</span><PasswordInput Value="@_changeNew" ValueChanged="OnNewPasswordChanged" Disabled="State.IsBusy" /></label>
+                <StrengthMeter Strength="_strength" />
+                <label class="field"><span>ยืนยัน master password ใหม่</span><PasswordInput @bind-Value="_changeConfirm" Disabled="State.IsBusy" /></label>
+                @if (_changeError is not null)
+                {
+                    <p class="form-error">@_changeError</p>
+                }
+                <div><button class="btn primary" disabled="@State.IsBusy" @onclick="ChangePasswordAsync">เปลี่ยน master password</button></div>
+            </section>
+
+            <section class="card settings-section">
+                <h3>Recovery key</h3>
+                <p class="desc">สร้าง recovery key ชุดใหม่ ชุดเดิมจะใช้ไม่ได้ทันที</p>
+                <label class="field"><span>Master password ปัจจุบัน</span><PasswordInput @bind-Value="_recoveryCurrent" Disabled="State.IsBusy" /></label>
+                @if (_recoveryError is not null)
+                {
+                    <p class="form-error">@_recoveryError</p>
+                }
+                <div><button class="btn" disabled="@State.IsBusy" @onclick="RegenerateRecoveryKeyAsync"><Icon Name="key" Class="sm" /> สร้าง recovery key ใหม่</button></div>
+            </section>
+
+            <section class="card settings-section">
+                <h3>ความแข็งแรงของการเข้ารหัส master password</h3>
+                <p class="desc">ปัจจุบัน: <span class="mono">@s.KdfDescription</span></p>
+                @if (s.KdfBelowRecommended)
+                {
+                    <div class="callout warning"><Icon Name="shield" /><div>อ่อนกว่าค่าแนะนำปัจจุบัน แนะนำให้อัปเกรด</div></div>
+                }
+                @if (!s.KdfIsStrongest)
+                {
+                    <div class="segmented">
+                        <button type="button" class="@(_kdfPreset == KdfPreset.Recommended ? "on" : "")" @onclick="() => _kdfPreset = KdfPreset.Recommended">แนะนำ (64 MiB)</button>
+                        <button type="button" class="@(_kdfPreset == KdfPreset.Strong ? "on" : "")" @onclick="() => _kdfPreset = KdfPreset.Strong">แข็งแรงพิเศษ (256 MiB, ปลดล็อกช้าลง)</button>
+                    </div>
+                    <label class="field"><span>Master password ปัจจุบัน</span><PasswordInput @bind-Value="_kdfCurrent" Disabled="State.IsBusy" /></label>
+                    @if (_kdfError is not null)
+                    {
+                        <p class="form-error">@_kdfError</p>
+                    }
+                    <div><button class="btn" disabled="@State.IsBusy" @onclick="UpgradeKdfAsync"><Icon Name="shield" Class="sm" /> อัปเกรด</button></div>
+                }
+                else
+                {
+                    <p class="muted">ใช้ค่าที่แข็งแรงที่สุดที่มีให้เลือกแล้ว</p>
+                }
+            </section>
+
+            <section class="card settings-section">
+                <h3>ที่เก็บไฟล์</h3>
+                <p class="desc">ไฟล์ vault และโฟลเดอร์ backups อยู่ที่นี่ (นอกโฟลเดอร์โปรแกรม)</p>
+                <code class="selectable">@s.StorageLocation</code>
+            </section>
+        </div>
+    </div>
+}
+
+@code {
+    private static readonly string[] Themes = ["system", "light", "dark"];
+
+    private string _changeCurrent = "";
+    private string _changeNew = "";
+    private string _changeConfirm = "";
+    private string _recoveryCurrent = "";
+    private string _kdfCurrent = "";
+    private string? _changeError;
+    private string? _recoveryError;
+    private string? _kdfError;
+    private KdfPreset _kdfPreset = KdfPreset.Recommended;
+    private PasswordStrengthViewModel? _strength;
+
+    private void OnNewPasswordChanged(string value)
+    {
+        _changeNew = value;
+        _strength = Unlock.EvaluatePassword(value);
+    }
+
+    private async Task ChangePasswordAsync()
+    {
+        var result = await Vault.ChangePasswordAsync(_changeCurrent, _changeNew, _changeConfirm);
+        _changeError = result.Error;
+        if (result.Succeeded)
+        {
+            ClearSecrets();
+        }
+    }
+
+    private async Task RegenerateRecoveryKeyAsync()
+    {
+        var result = await Vault.RegenerateRecoveryKeyAsync(_recoveryCurrent);
+        _recoveryError = result.Error;
+        if (result.Succeeded)
+        {
+            ClearSecrets();
+        }
+    }
+
+    private async Task UpgradeKdfAsync()
+    {
+        var result = await Vault.UpgradeKdfAsync(_kdfCurrent, _kdfPreset);
+        _kdfError = result.Error;
+        if (result.Succeeded)
+        {
+            _kdfCurrent = "";
+            Settings.Open();
+        }
+    }
+
+    protected override void ClearSecrets()
+    {
+        _changeCurrent = "";
+        _changeNew = "";
+        _changeConfirm = "";
+        _recoveryCurrent = "";
+        _kdfCurrent = "";
+        _strength = null;
+    }
+}

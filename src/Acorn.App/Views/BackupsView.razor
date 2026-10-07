@@ -1,0 +1,75 @@
+@inherits AppStateView
+@inject BackupController Backups
+
+<div class="page">
+    <div class="page-inner">
+        <div class="page-head">
+            <button class="icon-btn" title="กลับ" @onclick="Backups.Back"><Icon Name="arrow-left" /></button>
+            <h1>กู้คืนจาก backup</h1>
+            <button class="btn sm" @onclick="Backups.Refresh"><Icon Name="refresh" Class="sm" /> รีเฟรช</button>
+        </div>
+
+        <NoticeBar />
+
+        <div class="callout info">
+            <Icon Name="archive" />
+            <div>
+                Acorn สำรองไฟล์ vault ให้อัตโนมัติก่อนบันทึกทับทุกครั้ง ไฟล์ backup ยังเข้ารหัสอยู่
+                ต้องใช้ <strong>master password ของเวอร์ชันนั้น</strong> ในการปลดล็อกหลังกู้คืน
+                ไฟล์ vault ปัจจุบันจะถูกสำรองไว้ก่อนเสมอ จึงย้อนกลับได้
+            </div>
+        </div>
+
+        @if (State.Backups.Count == 0)
+        {
+            <div class="card empty">
+                <Icon Name="archive" />
+                <p>ยังไม่มี backup</p>
+            </div>
+        }
+        else
+        {
+            <div class="card">
+                @foreach (var backup in State.Backups)
+                {
+                    <div class="backup-row">
+                        <div class="info">
+                            <span>@backup.CreatedAtLocal.ToString("d MMM yyyy HH:mm:ss")</span>
+                            <small class="mono">@backup.FileName · @backup.SizeText</small>
+                        </div>
+                        @if (_confirming == backup.FileName)
+                        {
+                            <button class="btn sm" disabled="@State.IsBusy" @onclick="() => _confirming = null">ยกเลิก</button>
+                            <button class="btn sm danger solid" disabled="@State.IsBusy" @onclick="() => RestoreAsync(backup.FileName)">ยืนยันกู้คืน</button>
+                        }
+                        else
+                        {
+                            <button class="btn sm" disabled="@State.IsBusy" @onclick="() => _confirming = backup.FileName"><Icon Name="restore" Class="sm" /> กู้คืน</button>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
+        @if (_error is not null)
+        {
+            <p class="form-error">@_error</p>
+        }
+    </div>
+</div>
+
+@code {
+    private string? _confirming;
+    private string? _error;
+
+    private async Task RestoreAsync(string fileName)
+    {
+        _error = null;
+        var result = await Backups.RestoreAsync(fileName);
+        _confirming = null;
+        if (!result.Succeeded)
+        {
+            _error = result.Error;
+        }
+    }
+}

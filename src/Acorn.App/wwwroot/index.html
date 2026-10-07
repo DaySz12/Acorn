@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--
+        Everything is served from inside the app. No external origin is allowed for any resource type,
+        and no inline script or inline style attributes are permitted.
+    -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; frame-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'none'; base-uri 'self'; form-action 'none'" />
+    <meta name="referrer" content="no-referrer" />
+    <title>Acorn</title>
+    <base href="/" />
+    <link rel="stylesheet" href="css/app.css" />
+</head>
+<body>
+    <div id="app"><div class="boot">Acorn</div></div>
+
+    <div id="blazor-error-ui">
+        เกิดข้อผิดพลาดในหน้าจอ ปิดแล้วเปิดแอปใหม่ (ข้อมูลในไฟล์ vault ไม่ได้รับผลกระทบ)
+    </div>
+
+    <script src="_framework/blazor.webview.js"></script>
+    <script src="js/acorn.js"></script>
+</body>
+</html>

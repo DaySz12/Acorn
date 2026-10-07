@@ -1,0 +1,126 @@
+@inherits AppStateView
+@inject EntryController Entries
+
+@if (State.Editor is { } e)
+{
+    <section class="editor">
+        <div class="editor-head">
+            <h2>@(e.IsNew ? "เพิ่มรายการ" : "แก้ไขรายการ")</h2>
+            <button class="btn" @onclick="Entries.CancelEdit">ยกเลิก</button>
+            <button class="btn primary" @onclick="SaveAsync"><Icon Name="check" Class="sm" /> บันทึก</button>
+        </div>
+
+        @if (e.Errors.Count > 0)
+        {
+            <ul class="form-errors">
+                @foreach (var error in e.Errors)
+                {
+                    <li>@error</li>
+                }
+            </ul>
+        }
+
+        <div class="card stack">
+            <div class="segmented">
+                @foreach (var type in e.AvailableTypes)
+                {
+                    <button type="button" class="@(e.Type == type ? "on" : "")" @onclick="() => e.Type = type">@Ui.TypeLabel(type)</button>
+                }
+            </div>
+            <div class="field-grid">
+                <label class="field span-2">
+                    <span>ชื่อ</span>
+                    <input class="input" @bind="e.Name" placeholder="เช่น web-01, GitLab, DB staging" autocomplete="off" spellcheck="false" />
+                </label>
+                <label class="field">
+                    <span>Environment</span>
+                    <input class="input" list="acorn-env-options" @bind="e.Env" placeholder="dev / staging / prod" autocomplete="off" spellcheck="false" />
+                    <datalist id="acorn-env-options">
+                        @foreach (var env in e.AvailableEnvironments)
+                        {
+                            <option value="@env"></option>
+                        }
+                    </datalist>
+                </label>
+                <label class="field">
+                    <span>Tags (คั่นด้วย ,)</span>
+                    <input class="input" @bind="e.TagsText" placeholder="web, nginx" autocomplete="off" spellcheck="false" />
+                </label>
+                @if (e.Type != "note")
+                {
+                    <label class="field">
+                        <span>Host / IP</span>
+                        <input class="input mono" @bind="e.Host" placeholder="10.0.0.5 หรือ host.example.com" autocomplete="off" spellcheck="false" />
+                    </label>
+                    <label class="field">
+                        <span>Port</span>
+                        <input class="input mono" @bind="e.PortText" inputmode="numeric" placeholder="22" autocomplete="off" />
+                    </label>
+                    <label class="field span-2">
+                        <span>Username</span>
+                        <input class="input mono" @bind="e.Username" autocomplete="off" spellcheck="false" />
+                    </label>
+                }
+            </div>
+        </div>
+
+        @if (e.Type != "note")
+        {
+            <div class="card stack">
+                <div class="field">
+                    <span class="field-label">Password @(e.HasExistingPassword ? "— เว้นว่างไว้เพื่อใช้รหัสเดิม" : "")</span>
+                    <PasswordInput @bind-Value="e.NewPassword" Placeholder="@(e.HasExistingPassword ? "•••••••• (ไม่เปลี่ยน)" : "")" Disabled="e.RemovePassword" />
+                </div>
+                @if (e.HasExistingPassword)
+                {
+                    <label class="checkbox"><input type="checkbox" @bind="e.RemovePassword" /> ลบรหัสผ่านที่เก็บไว้</label>
+                }
+                <PasswordGeneratorPanel />
+                <label class="field">
+                    <span>SSH key path (เก็บเฉพาะ path ไม่เก็บไฟล์ key)</span>
+                    <input class="input mono" @bind="e.SshKeyPath" placeholder="~/.ssh/id_ed25519" autocomplete="off" spellcheck="false" />
+                </label>
+            </div>
+        }
+
+        <div class="card stack">
+            <div class="row">
+                <h3 class="grow">ฟิลด์เพิ่มเติม</h3>
+                <button type="button" class="btn sm" @onclick="() => Entries.AddCustomField()"><Icon Name="plus" Class="sm" /> ฟิลด์</button>
+                <button type="button" class="btn sm" @onclick="() => Entries.AddCustomField(true)"><Icon Name="key" Class="sm" /> ฟิลด์ลับ</button>
+            </div>
+            @if (e.CustomFields.Count == 0)
+            {
+                <p class="muted">เช่น API token, URL หน้า admin, ชื่อ database</p>
+            }
+            @foreach (var field in e.CustomFields)
+            {
+                <div class="custom-field" @key="field.Id">
+                    <input class="input" @bind="field.Label" placeholder="ชื่อฟิลด์" autocomplete="off" spellcheck="false" />
+                    @if (field.IsSecret)
+                    {
+                        <PasswordInput @bind-Value="field.Value" Placeholder="@(field.HasExistingSecret ? "•••••••• (ไม่เปลี่ยน)" : "ค่า")" />
+                    }
+                    else
+                    {
+                        <input class="input" @bind="field.Value" placeholder="ค่า" autocomplete="off" spellcheck="false" />
+                    }
+                    <label class="checkbox" title="ซ่อนค่า และล้าง clipboard อัตโนมัติเมื่อคัดลอก"><input type="checkbox" @bind="field.IsSecret" /> ลับ</label>
+                    <button type="button" class="icon-btn" title="ลบฟิลด์" @onclick="() => Entries.RemoveCustomField(field.Id)"><Icon Name="trash" Class="sm" /></button>
+                </div>
+            }
+        </div>
+
+        <div class="card stack">
+            <label class="field">
+                <span>โน้ต</span>
+                <textarea class="input" rows="5" @bind="e.Notes" spellcheck="false"></textarea>
+            </label>
+            <label class="checkbox"><input type="checkbox" @bind="e.Favorite" /> รายการโปรด</label>
+        </div>
+    </section>
+}
+
+@code {
+    private Task SaveAsync() => Entries.SaveAsync();
+}

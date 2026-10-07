@@ -1,0 +1,14 @@
+@inherits AppStateView
+@inject VaultController Vault
+
+@if (State.Notice is { } notice)
+{
+    <div class="notice @notice.Kind.ToString().ToLowerInvariant() @Class" role="status">
+        <span>@notice.Message</span>
+        <button type="button" class="icon-btn" title="ปิด" @onclick="Vault.DismissNotice"><Icon Name="x" Class="sm" /></button>
+    </div>
+}
+
+@code {
+    [Parameter] public string? Class { get; set; }
+}

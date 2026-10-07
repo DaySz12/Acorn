@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>Acorn.App</RootNamespace>
+    <AssemblyName>Acorn</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationIcon>wwwroot\favicon.ico</ApplicationIcon>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Update="wwwroot\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Photino.Blazor" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebView" />
+    <PackageReference Include="TextCopy" />
+    <PackageReference Include="Microsoft.Win32.SystemEvents" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Acorn.Application\Acorn.Application.csproj" />
+    <ProjectReference Include="..\Acorn.Core\Acorn.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Acorn.Application.Tests" />
+  </ItemGroup>
+
+</Project>

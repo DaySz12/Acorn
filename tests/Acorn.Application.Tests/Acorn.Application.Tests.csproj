@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="NSubstitute" />
+    <PackageReference Include="NetArchTest.eNhancedEdition" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Acorn.Application\Acorn.Application.csproj" />
+    <!-- Referenced only so architecture tests can inspect the compiled views. -->
+    <ProjectReference Include="..\..\src\Acorn.App\Acorn.App.csproj" />
+  </ItemGroup>
+
+</Project>

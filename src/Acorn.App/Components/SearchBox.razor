@@ -1,0 +1,34 @@
+@inherits AppStateView
+@inject EntryController Entries
+
+<div class="search">
+    <Icon Name="search" Class="sm" />
+    <input @ref="_input" class="input" value="@State.SearchText" @oninput="OnInput" @onkeydown="OnKeyDown"
+           placeholder="ค้นหาชื่อ host user tag…" autocomplete="off" spellcheck="false" />
+    <kbd>@Ui.ShortcutLabel</kbd>
+</div>
+
+@code {
+    private ElementReference _input;
+    private int _handledFocusRequest;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // Ctrl/Cmd+K increments a counter in AppState; focus once per request.
+        if (State.SearchFocusRequest != _handledFocusRequest)
+        {
+            _handledFocusRequest = State.SearchFocusRequest;
+            await _input.FocusAsync();
+        }
+    }
+
+    private void OnInput(ChangeEventArgs e) => Entries.SetSearch(e.Value?.ToString());
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+        {
+            Entries.SetSearch("");
+        }
+    }
+}

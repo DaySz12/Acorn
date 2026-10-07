@@ -1,0 +1,17 @@
+@inherits AppStateView
+@inject UnlockController Unlock
+
+<div class="lock-screen">
+    <section class="lock-card">
+        <header>
+            <Logo />
+            <h1>Vault กำลังถูกใช้งาน</h1>
+            <p class="muted">มีอีกหน้าต่างหรือโปรเซสกำลังใช้ vault นี้อยู่ เพื่อป้องกันข้อมูลเสียหาย Acorn จะไม่เปิดหรือเขียนไฟล์ซ้อนกัน</p>
+        </header>
+        <div class="callout info">
+            <Icon Name="alert" />
+            <div>ปิดหน้าต่าง Acorn อีกอันก่อน แล้วกด "ลองใหม่" ถ้าแอปเพิ่งค้างหรือถูกปิดกะทันหัน ระบบปฏิบัติการจะปล่อย lock ให้เองเมื่อโปรเซสเดิมจบ</div>
+        </div>
+        <button class="btn primary block" @onclick="Unlock.Initialize"><Icon Name="refresh" /> ลองใหม่</button>
+    </section>
+</div>

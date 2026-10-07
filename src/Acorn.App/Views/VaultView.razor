@@ -1,0 +1,90 @@
+@inherits AppStateView
+@inject EntryController Entries
+@inject VaultController Vault
+@inject SettingsController Settings
+
+<div class="vault">
+    <Sidebar />
+
+    <section class="list-pane">
+        <div class="list-head">
+            <div class="row">
+                <h2>@Title</h2>
+                <button class="btn sm primary" @onclick="() => Entries.BeginCreate()"><Icon Name="plus" Class="sm" /> เพิ่ม</button>
+            </div>
+            <SearchBox />
+        </div>
+
+        @if (State.KdfUpgradeSuggested)
+        {
+            <div class="banner">
+                <Icon Name="shield" />
+                <span>การเข้ารหัส master password อ่อนกว่าค่าแนะนำปัจจุบัน</span>
+                <button class="btn sm" @onclick="Settings.Open">อัปเกรด</button>
+                <button class="icon-btn" title="ไม่ใช่ตอนนี้" @onclick="Vault.DismissKdfSuggestion"><Icon Name="x" Class="sm" /></button>
+            </div>
+        }
+        @if (State.RecoveryKeyUnconfirmed)
+        {
+            <div class="banner">
+                <Icon Name="key" />
+                <span>ยังไม่ได้ยืนยันว่าจด recovery key ชุดล่าสุดไว้แล้ว ควรสร้างชุดใหม่</span>
+                <button class="btn sm" @onclick="Settings.Open">สร้างใหม่</button>
+            </div>
+        }
+        <NoticeBar Class="top-notice" />
+
+        <div class="entry-list">
+            @if (State.EntryList.Items.Count == 0)
+            {
+                <div class="empty">
+                    @if (State.EntryList.TotalCount == 0)
+                    {
+                        <p>ยังไม่มีรายการ</p>
+                        <button class="btn" @onclick="() => Entries.BeginCreate()"><Icon Name="plus" Class="sm" /> เพิ่มรายการแรก</button>
+                    }
+                    else
+                    {
+                        <p>ไม่พบรายการที่ตรงกับตัวกรอง</p>
+                    }
+                </div>
+            }
+            else
+            {
+                @foreach (var item in State.EntryList.Items)
+                {
+                    <EntryCard @key="item.Id" Item="item" Selected="item.Id == State.SelectedEntryId" OnClick="() => Entries.Select(item.Id)" />
+                }
+            }
+        </div>
+    </section>
+
+    <section class="detail-pane">
+        @if (State.Editor is not null)
+        {
+            <EntryEditView />
+        }
+        else if (State.SelectedEntry is { } entry)
+        {
+            <EntryDetail Entry="entry" />
+        }
+        else
+        {
+            <div class="empty">
+                <Logo />
+                <h3>เลือกรายการทางซ้าย</h3>
+                <p>หรือกด <kbd>@Ui.ShortcutLabel</kbd> เพื่อค้นหา</p>
+            </div>
+        }
+    </section>
+</div>
+
+@code {
+    private string Title => State.Filter.Kind switch
+    {
+        EntryFilterKind.Favorites => "รายการโปรด",
+        EntryFilterKind.Environment => State.Filter.Value ?? "",
+        EntryFilterKind.Tag => "#" + State.Filter.Value,
+        _ => "ทั้งหมด",
+    };
+}

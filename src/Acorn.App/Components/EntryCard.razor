@@ -1,0 +1,41 @@
+@* One row of the entry list. The view model has no password value, only HasPassword. *@
+<button type="button" class="entry-row @(Selected ? "selected" : "")" @onclick="OnClick">
+    <span class="type-icon"><Icon Name="@Ui.TypeIcon(Item.Type)" /></span>
+    <span class="body">
+        <span class="title">
+            <span>@Item.Name</span>
+            @if (Item.Favorite)
+            {
+                <Icon Name="star" Filled="true" Class="sm star" />
+            }
+        </span>
+        <span class="sub">@Subtitle</span>
+    </span>
+    @if (Item.Env.Length > 0)
+    {
+        <span class="badge @Ui.EnvClass(Item.Env)">@Item.Env</span>
+    }
+</button>
+
+@code {
+    [Parameter, EditorRequired] public EntryListItemViewModel Item { get; set; } = default!;
+    [Parameter] public bool Selected { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+
+    private string Subtitle
+    {
+        get
+        {
+            var host = Item.Host.Length > 0 && Item.Port is { } port ? $"{Item.Host}:{port}" : Item.Host;
+            if (Item.Username.Length > 0 && host.Length > 0)
+            {
+                return $"{Item.Username}@{host}";
+            }
+            if (host.Length > 0 || Item.Username.Length > 0)
+            {
+                return host.Length > 0 ? host : Item.Username;
+            }
+            return Item.Tags.Count > 0 ? string.Join(" · ", Item.Tags.Select(t => "#" + t)) : Ui.TypeLabel(Item.Type);
+        }
+    }
+}

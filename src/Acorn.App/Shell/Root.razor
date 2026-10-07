@@ -1,0 +1,55 @@
+@* Root component: theme wrapper, global JS bridge and screen switch. Renders from AppState only. *@
+@inherits AppStateView
+
+<div class="acorn" data-theme="@State.Theme">
+    <JsBridge />
+    <ErrorBoundary @ref="_boundary">
+        <ChildContent>
+            @switch (State.Screen)
+            {
+                case Screen.VaultInUse:
+                    <VaultInUseView />
+                    break;
+                case Screen.CreateVault:
+                    <CreateVaultView />
+                    break;
+                case Screen.Unlock:
+                    <UnlockView />
+                    break;
+                case Screen.Recover:
+                    <RecoveryView />
+                    break;
+                case Screen.RecoveryKey:
+                    <RecoveryKeyView />
+                    break;
+                case Screen.Vault:
+                    <VaultView />
+                    break;
+                case Screen.Settings:
+                    <SettingsView />
+                    break;
+                case Screen.Backups:
+                    <BackupsView />
+                    break;
+                default:
+                    <div class="boot">Acorn</div>
+                    break;
+            }
+        </ChildContent>
+        <ErrorContent>
+            <div class="fatal">
+                <div>
+                    <Logo />
+                    <p>เกิดข้อผิดพลาดในหน้าจอ ข้อมูลในไฟล์ vault ไม่ได้รับผลกระทบ</p>
+                    <button class="btn primary" @onclick="RecoverFromError">กลับไปหน้าหลัก</button>
+                </div>
+            </div>
+        </ErrorContent>
+    </ErrorBoundary>
+</div>
+
+@code {
+    private ErrorBoundary? _boundary;
+
+    private void RecoverFromError() => _boundary?.Recover();
+}

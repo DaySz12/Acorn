@@ -1,0 +1,38 @@
+@* Host-shell glue between acorn.js and controllers: activity pings (auto-lock) and Ctrl/Cmd+K.
+   No secret value ever crosses this bridge. Lives outside Views/ because it needs IJSRuntime. *@
+@implements IAsyncDisposable
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inject VaultController Vault
+@inject EntryController Entries
+
+@code {
+    private DotNetObjectReference<JsBridge>? _reference;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _reference = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("acorn.attach", _reference);
+        }
+    }
+
+    [JSInvokable]
+    public void OnActivity() => Vault.NotifyActivity();
+
+    [JSInvokable]
+    public void OnQuickSearch() => Entries.RequestQuickSearch();
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("acorn.detach");
+        }
+        catch (JSDisconnectedException)
+        {
+        }
+        _reference?.Dispose();
+    }
+}

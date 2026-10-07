@@ -1,0 +1,90 @@
+@inherits AppStateView
+@inject UnlockController Unlock
+@inject BackupController Backups
+
+<div class="lock-screen">
+    <section class="lock-card">
+        <header>
+            <Logo />
+            <h1>สร้าง vault ใหม่</h1>
+            <p class="muted">ตั้ง master password สำหรับเข้ารหัสข้อมูลทั้งหมดในเครื่องนี้</p>
+        </header>
+
+        <NoticeBar />
+
+        <label class="field">
+            <span>Master password (อย่างน้อย 12 ตัวอักษร)</span>
+            <PasswordInput Value="@_password" ValueChanged="OnPasswordChanged" AutoFocus="true" Disabled="State.IsBusy" />
+        </label>
+        <StrengthMeter Strength="_strength" />
+
+        <label class="field">
+            <span>ยืนยัน master password</span>
+            <PasswordInput @bind-Value="_confirmation" OnEnter="CreateAsync" Disabled="State.IsBusy" />
+        </label>
+
+        <div class="callout warning">
+            <Icon Name="alert" />
+            <div>
+                <strong>ถ้าลืม master password และทำ recovery key หาย จะกู้ข้อมูลไม่ได้เลย</strong>
+                ไม่มีใคร (รวมถึงผู้พัฒนา) ถอดรหัสให้ได้ หน้าถัดไปจะแสดง recovery key ให้จดเก็บไว้
+            </div>
+        </div>
+
+        @if (_error is not null)
+        {
+            <p class="form-error">@_error</p>
+        }
+
+        <button class="btn primary block" disabled="@State.IsBusy" @onclick="CreateAsync">
+            @if (State.IsBusy)
+            {
+                <span class="spinner"></span>
+                <span>กำลังสร้าง…</span>
+            }
+            else
+            {
+                <span>สร้าง vault</span>
+            }
+        </button>
+
+        <div class="lock-links">
+            <span class="muted">มีไฟล์ backup อยู่แล้ว?</span>
+            <button class="link" @onclick="Backups.Open">กู้คืนจาก backup</button>
+        </div>
+    </section>
+</div>
+
+@code {
+    private string _password = "";
+    private string _confirmation = "";
+    private string? _error;
+    private PasswordStrengthViewModel? _strength;
+
+    private void OnPasswordChanged(string value)
+    {
+        _password = value;
+        _strength = Unlock.EvaluatePassword(value);
+    }
+
+    private async Task CreateAsync()
+    {
+        _error = null;
+        var result = await Unlock.CreateVaultAsync(_password, _confirmation);
+        if (result.Succeeded)
+        {
+            ClearSecrets();
+        }
+        else
+        {
+            _error = result.Error;
+        }
+    }
+
+    protected override void ClearSecrets()
+    {
+        _password = "";
+        _confirmation = "";
+        _strength = null;
+    }
+}

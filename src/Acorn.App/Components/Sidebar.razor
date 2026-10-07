@@ -1,0 +1,56 @@
+@inherits AppStateView
+@inject EntryController Entries
+@inject SettingsController Settings
+@inject VaultController Vault
+
+<nav class="sidebar">
+    <div class="brand"><Logo /> Acorn</div>
+
+    <button class="nav-item @Active(EntryFilter.All)" @onclick="() => Entries.SetFilter(EntryFilter.All)">
+        <Icon Name="layers" /> ทั้งหมด <span class="count">@State.Sidebar.AllCount</span>
+    </button>
+    <button class="nav-item @Active(EntryFilter.Favorites)" @onclick="() => Entries.SetFilter(EntryFilter.Favorites)">
+        <Icon Name="star" /> รายการโปรด <span class="count">@State.Sidebar.FavoriteCount</span>
+    </button>
+
+    @if (State.Sidebar.Environments.Count > 0)
+    {
+        <div class="section-title">Environment</div>
+        @foreach (var env in State.Sidebar.Environments)
+        {
+            var filter = EntryFilter.ForEnvironment(env.Name);
+            <button class="nav-item @Active(filter)" @onclick="() => Entries.SetFilter(filter)">
+                <span class="dot @Ui.EnvClass(env.Name)"></span> @env.Name <span class="count">@env.Count</span>
+            </button>
+        }
+    }
+
+    @if (State.Sidebar.Tags.Count > 0)
+    {
+        <div class="section-title">Tags</div>
+        @foreach (var tag in State.Sidebar.Tags)
+        {
+            var filter = EntryFilter.ForTag(tag.Name);
+            <button class="nav-item @Active(filter)" @onclick="() => Entries.SetFilter(filter)">
+                <Icon Name="tag" Class="sm" /> @tag.Name <span class="count">@tag.Count</span>
+            </button>
+        }
+    }
+
+    <div class="footer">
+        <button class="nav-item" @onclick="Settings.Open"><Icon Name="settings" /> ตั้งค่า</button>
+        <button class="nav-item" @onclick="CycleThemeAsync"><Icon Name="contrast" /> ธีม: @Ui.ThemeLabel(State.Theme)</button>
+        <button class="nav-item" @onclick="() => Vault.LockAsync()"><Icon Name="lock" /> ล็อก</button>
+    </div>
+</nav>
+
+@code {
+    private string Active(EntryFilter filter) => State.Filter == filter ? "active" : "";
+
+    private Task CycleThemeAsync() => Settings.SetThemeAsync(State.Theme switch
+    {
+        "system" => "light",
+        "light" => "dark",
+        _ => "system",
+    });
+}

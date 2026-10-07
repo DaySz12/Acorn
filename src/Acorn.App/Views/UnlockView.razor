@@ -1,0 +1,59 @@
+@inherits AppStateView
+@inject UnlockController Unlock
+@inject BackupController Backups
+
+<div class="lock-screen">
+    <section class="lock-card">
+        <header>
+            <Logo />
+            <h1>Acorn</h1>
+            <p class="muted">ปลดล็อก vault ด้วย master password</p>
+        </header>
+
+        <NoticeBar />
+
+        <PasswordInput @bind-Value="_password" OnEnter="UnlockAsync" Placeholder="Master password" AutoFocus="true" Disabled="State.IsBusy" />
+
+        @if (_error is not null)
+        {
+            <p class="form-error">@_error</p>
+        }
+
+        <button class="btn primary block" disabled="@State.IsBusy" @onclick="UnlockAsync">
+            @if (State.IsBusy)
+            {
+                <span class="spinner"></span>
+                <span>กำลังปลดล็อก…</span>
+            }
+            else
+            {
+                <Icon Name="lock" />
+                <span>ปลดล็อก</span>
+            }
+        </button>
+
+        <div class="lock-links">
+            <button class="link" @onclick="Unlock.ShowRecover">ลืม master password? ใช้ recovery key</button>
+            <button class="link" @onclick="Backups.Open">กู้คืนจาก backup</button>
+        </div>
+    </section>
+</div>
+
+@code {
+    private string _password = "";
+    private string? _error;
+
+    private async Task UnlockAsync()
+    {
+        var password = _password;
+        _password = "";
+        _error = null;
+        var result = await Unlock.UnlockWithPasswordAsync(password);
+        if (!result.Succeeded)
+        {
+            _error = result.Error;
+        }
+    }
+
+    protected override void ClearSecrets() => _password = "";
+}

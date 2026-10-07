@@ -1,0 +1,85 @@
+@inherits AppStateView
+@inject VaultController Vault
+
+@if (State.PendingRecoveryKey is { } key)
+{
+    <div class="lock-screen">
+        <section class="lock-card wide print-area">
+            <header>
+                <Logo />
+                <h1>Recovery key ของคุณ</h1>
+                <p class="muted">ใช้ตั้ง master password ใหม่ถ้าลืมรหัส <strong>แสดงเพียงครั้งเดียว</strong> Acorn ไม่เก็บค่านี้ไว้ที่ใดเลย</p>
+            </header>
+
+            <div class="no-print"><NoticeBar /></div>
+
+            <div class="recovery-grid">
+                @for (var i = 0; i < key.Groups.Count; i++)
+                {
+                    <div class="group"><small>@(i + 1)</small><code>@key.Groups[i]</code></div>
+                }
+            </div>
+
+            <div class="callout warning no-print">
+                <Icon Name="alert" />
+                <div>จดหรือพิมพ์เก็บไว้ในที่ปลอดภัย <strong>นอกคอมพิวเตอร์เครื่องนี้</strong> ถ้าลืม master password และไม่มี recovery key จะกู้ข้อมูลไม่ได้</div>
+            </div>
+
+            <div class="row no-print">
+                <button class="btn" @onclick="CopyAsync"><Icon Name="@(_copied ? "check" : "copy")" /> @(_copied ? "คัดลอกแล้ว (ล้างอัตโนมัติ)" : "คัดลอก")</button>
+                <button class="btn" data-action="print"><Icon Name="printer" /> พิมพ์</button>
+            </div>
+
+            <div class="stack no-print">
+                <div class="field-label">ยืนยันว่าจดแล้ว: พิมพ์กลุ่มที่ @(key.ConfirmGroupIndexes[0] + 1) และกลุ่มที่ @(key.ConfirmGroupIndexes[1] + 1)</div>
+                <div class="recovery-confirm">
+                    <input class="input mono" @bind="_first" @bind:event="oninput" placeholder="กลุ่มที่ @(key.ConfirmGroupIndexes[0] + 1)" maxlength="7" autocomplete="off" spellcheck="false" />
+                    <input class="input mono" @bind="_second" @bind:event="oninput" placeholder="กลุ่มที่ @(key.ConfirmGroupIndexes[1] + 1)" maxlength="7" autocomplete="off" spellcheck="false" @onkeydown="OnKeyDown" />
+                </div>
+                @if (_error is not null)
+                {
+                    <p class="form-error">@_error</p>
+                }
+                <button class="btn primary block" @onclick="Confirm">ฉันเก็บ recovery key เรียบร้อยแล้ว</button>
+            </div>
+        </section>
+    </div>
+}
+
+@code {
+    private string _first = "";
+    private string _second = "";
+    private string? _error;
+    private bool _copied;
+
+    private async Task CopyAsync()
+    {
+        var result = await Vault.CopyRecoveryKeyAsync();
+        _copied = result.Succeeded;
+        _error = result.Error;
+    }
+
+    private void Confirm()
+    {
+        var result = Vault.ConfirmRecoveryKeySaved([_first, _second]);
+        _error = result.Error;
+        if (result.Succeeded)
+        {
+            ClearSecrets();
+        }
+    }
+
+    private void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            Confirm();
+        }
+    }
+
+    protected override void ClearSecrets()
+    {
+        _first = "";
+        _second = "";
+    }
+}

@@ -1,0 +1,155 @@
+@inherits AppStateView
+@inject EntryController Entries
+
+<article class="detail">
+    <div class="detail-head">
+        <div class="type-icon"><Icon Name="@Ui.TypeIcon(Entry.Type)" /></div>
+        <div class="titles">
+            <h1 class="selectable">@Entry.Name</h1>
+            <div class="row wrap">
+                @if (Entry.Env.Length > 0)
+                {
+                    <span class="badge @Ui.EnvClass(Entry.Env)">@Entry.Env</span>
+                }
+                <span class="badge">@Ui.TypeLabel(Entry.Type)</span>
+                @foreach (var tag in Entry.Tags)
+                {
+                    <span class="tag">#@tag</span>
+                }
+            </div>
+        </div>
+        <div class="row">
+            <button class="icon-btn @(Entry.Favorite ? "active" : "")" title="@(Entry.Favorite ? "เอาออกจากรายการโปรด" : "เพิ่มในรายการโปรด")" @onclick="ToggleFavoriteAsync">
+                <Icon Name="star" Filled="Entry.Favorite" />
+            </button>
+            <button class="btn sm" @onclick="() => Entries.BeginEdit(Entry.Id)"><Icon Name="edit" Class="sm" /> แก้ไข</button>
+            <button class="icon-btn" title="ลบ" @onclick="() => _confirmDelete = true"><Icon Name="trash" /></button>
+        </div>
+    </div>
+
+    @if (_confirmDelete)
+    {
+        <div class="confirm-box">
+            <span>ลบ "@Entry.Name" ใช่ไหม? (ยังกู้คืนได้จาก backup)</span>
+            <div class="row">
+                <button class="btn sm" @onclick="() => _confirmDelete = false">ยกเลิก</button>
+                <button class="btn sm danger solid" @onclick="DeleteAsync">ลบรายการ</button>
+            </div>
+        </div>
+    }
+    @if (_error is not null)
+    {
+        <p class="form-error">@_error</p>
+    }
+
+    @if (HasFields)
+    {
+        <div class="card fields">
+            @if (Entry.Host.Length > 0)
+            {
+                <div class="field-row">
+                    <span class="label">Host</span>
+                    <span class="value mono">@Entry.Host</span>
+                    <span class="actions"><CopyButton OnCopy="() => Entries.CopyAsync(Entry.Id, CopyField.Host)" /></span>
+                </div>
+            }
+            @if (Entry.Port is { } port)
+            {
+                <div class="field-row">
+                    <span class="label">Port</span>
+                    <span class="value mono">@port</span>
+                    <span class="actions"></span>
+                </div>
+            }
+            @if (Entry.Username.Length > 0)
+            {
+                <div class="field-row">
+                    <span class="label">Username</span>
+                    <span class="value mono">@Entry.Username</span>
+                    <span class="actions"><CopyButton OnCopy="() => Entries.CopyAsync(Entry.Id, CopyField.Username)" /></span>
+                </div>
+            }
+            @if (Entry.HasPassword)
+            {
+                <SecretField Secret="SecretRef.Password(Entry.Id)" Label="Password" />
+            }
+            @if (Entry.SshKeyPath.Length > 0)
+            {
+                <div class="field-row">
+                    <span class="label">SSH key</span>
+                    <span class="value mono">@Entry.SshKeyPath</span>
+                    <span class="actions"></span>
+                </div>
+            }
+            @foreach (var field in Entry.CustomFields)
+            {
+                if (field.IsSecret)
+                {
+                    <SecretField Secret="SecretRef.Field(Entry.Id, field.Id)" Label="@field.Label" />
+                }
+                else
+                {
+                    <div class="field-row">
+                        <span class="label">@field.Label</span>
+                        <span class="value">@field.Value</span>
+                        <span class="actions">
+                            @if (field.HasValue)
+                            {
+                                <CopyButton OnCopy="() => Entries.CopyAsync(Entry.Id, CopyField.CustomField, field.Id)" />
+                            }
+                        </span>
+                    </div>
+                }
+            }
+        </div>
+    }
+
+    @if (Entry.SshCommand is { } command)
+    {
+        <div class="section-label">SSH</div>
+        <div class="card ssh-line">
+            <Icon Name="terminal" />
+            <code>@command</code>
+            <CopyButton OnCopy="() => Entries.CopyAsync(Entry.Id, CopyField.SshCommand)" Title="คัดลอกคำสั่ง ssh" />
+        </div>
+    }
+
+    @if (Entry.Notes.Length > 0)
+    {
+        <div class="section-label">โน้ต</div>
+        <div class="card notes">@Entry.Notes</div>
+    }
+
+    <p class="meta">สร้างเมื่อ @Ui.LocalTime(Entry.CreatedAt) · แก้ไขล่าสุด @Ui.LocalTime(Entry.UpdatedAt)</p>
+</article>
+
+@code {
+    private Guid _shownId;
+    private bool _confirmDelete;
+    private string? _error;
+
+    [Parameter, EditorRequired] public EntryDetailViewModel Entry { get; set; } = default!;
+
+    private bool HasFields =>
+        Entry.Host.Length > 0 || Entry.Port is not null || Entry.Username.Length > 0 || Entry.HasPassword ||
+        Entry.SshKeyPath.Length > 0 || Entry.CustomFields.Count > 0;
+
+    protected override void OnParametersSet()
+    {
+        if (Entry.Id != _shownId)
+        {
+            _shownId = Entry.Id;
+            _confirmDelete = false;
+            _error = null;
+        }
+    }
+
+    private async Task ToggleFavoriteAsync() => _error = (await Entries.ToggleFavoriteAsync(Entry.Id)).Error;
+
+    private async Task DeleteAsync()
+    {
+        var result = await Entries.DeleteAsync(Entry.Id);
+        _confirmDelete = false;
+        _error = result.Error;
+    }
+}

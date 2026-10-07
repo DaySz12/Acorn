@@ -1,0 +1,25 @@
+@* Copy is executed by the controller; this button only shows feedback. *@
+<button type="button" class="icon-btn @(_copied ? "copied" : "")" title="@(_error ?? Title)" @onclick="CopyAsync">
+    <Icon Name="@(_copied ? "check" : "copy")" Class="sm" />
+</button>
+
+@code {
+    private bool _copied;
+    private string? _error;
+
+    [Parameter, EditorRequired] public Func<Task<Result>> OnCopy { get; set; } = default!;
+    [Parameter] public string Title { get; set; } = "คัดลอก";
+
+    private async Task CopyAsync()
+    {
+        var result = await OnCopy();
+        _copied = result.Succeeded;
+        _error = result.Error;
+        if (result.Succeeded)
+        {
+            StateHasChanged();
+            await Task.Delay(1500);
+            _copied = false;
+        }
+    }
+}

@@ -1,0 +1,93 @@
+@inherits AppStateView
+@inject UnlockController Unlock
+
+<div class="lock-screen">
+    <section class="lock-card">
+        <header>
+            <Logo />
+            <h1>ปลดล็อกด้วย recovery key</h1>
+            <p class="muted">ใส่ recovery key ที่จดไว้ตอนสร้าง vault แล้วตั้ง master password ใหม่</p>
+        </header>
+
+        <NoticeBar />
+
+        <label class="field">
+            <span>Recovery key</span>
+            <input class="input mono" @bind="_recoveryKey" @bind:event="oninput" placeholder="XXXXX-XXXXX-XXXXX-…"
+                   autocomplete="off" autocapitalize="characters" spellcheck="false" disabled="@State.IsBusy" />
+        </label>
+
+        <label class="field">
+            <span>Master password ใหม่ (อย่างน้อย 12 ตัวอักษร)</span>
+            <PasswordInput Value="@_password" ValueChanged="OnPasswordChanged" Disabled="State.IsBusy" />
+        </label>
+        <StrengthMeter Strength="_strength" />
+
+        <label class="field">
+            <span>ยืนยัน master password ใหม่</span>
+            <PasswordInput @bind-Value="_confirmation" OnEnter="RecoverAsync" Disabled="State.IsBusy" />
+        </label>
+
+        <div class="callout info">
+            <Icon Name="key" />
+            <div>เมื่อสำเร็จ recovery key เดิมจะใช้ไม่ได้อีก และจะได้ชุดใหม่ให้จดเก็บแทน</div>
+        </div>
+
+        @if (_error is not null)
+        {
+            <p class="form-error">@_error</p>
+        }
+
+        <button class="btn primary block" disabled="@State.IsBusy" @onclick="RecoverAsync">
+            @if (State.IsBusy)
+            {
+                <span class="spinner"></span>
+                <span>กำลังตรวจสอบ…</span>
+            }
+            else
+            {
+                <span>ตั้ง master password ใหม่</span>
+            }
+        </button>
+
+        <div class="lock-links">
+            <button class="link" @onclick="Unlock.ShowUnlock"><Icon Name="arrow-left" Class="sm" /> กลับไปหน้าปลดล็อก</button>
+        </div>
+    </section>
+</div>
+
+@code {
+    private string _recoveryKey = "";
+    private string _password = "";
+    private string _confirmation = "";
+    private string? _error;
+    private PasswordStrengthViewModel? _strength;
+
+    private void OnPasswordChanged(string value)
+    {
+        _password = value;
+        _strength = Unlock.EvaluatePassword(value);
+    }
+
+    private async Task RecoverAsync()
+    {
+        _error = null;
+        var result = await Unlock.RecoverAsync(_recoveryKey, _password, _confirmation);
+        if (result.Succeeded)
+        {
+            ClearSecrets();
+        }
+        else
+        {
+            _error = result.Error;
+        }
+    }
+
+    protected override void ClearSecrets()
+    {
+        _recoveryKey = "";
+        _password = "";
+        _confirmation = "";
+        _strength = null;
+    }
+}
